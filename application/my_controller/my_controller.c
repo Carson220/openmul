@@ -199,7 +199,8 @@ my_controller_packet_in(mul_switch_t *sw UNUSED,
     case ETH_TYPE_IP:
         //IP 0x0800
         c_log_info("IP packet-in from network");
-        tp_rt_ip(fl->ip.nw_src, fl->ip.nw_dst);
+        // tp_rt_ip(fl->ip.nw_src, fl->ip.nw_dst);
+        // tp_rt_redis_ip(fl->ip.nw_src, fl->ip.nw_dst);
         break;
     case ETH_TYPE_ARP:
         //ARP 0x0806

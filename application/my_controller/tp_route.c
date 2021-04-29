@@ -103,7 +103,7 @@ int tp_rt_ip(uint32_t nw_src, uint32_t nw_dst)
     uint64_t * sw_visiting_key;
     uint64_t delay_set = 0;
 
-    if(!src_node && !dst_node) return 0;
+    if(!src_node || !dst_node) return 0;
 
     c_log_debug("heap_create!");
     heap_create(&rt_minheap, 0, NULL);
