@@ -37,7 +37,6 @@ uint32_t tp_set_sw_glabol_id(uint64_t sw_dpid)
 uint32_t tp_get_sw_glabol_id(uint64_t sw_dpid)
 {
     tp_swdpid_glabolkey *s = NULL;
-    tp_swdpid_glabolkey *tmp;
     
     HASH_FIND(hh, key_table, &sw_dpid, sizeof(uint64_t), s);
     if(s)return s->sw_gid;
@@ -241,7 +240,7 @@ int tp_delete_sw(uint32_t key)
     return 1;
 }
 
-void tp_distory()
+void tp_distory(void)
 {
     tp_sw * s, * tmp;
     tp_link * next_tmp1, * next_tmp2;

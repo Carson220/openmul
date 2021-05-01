@@ -21,7 +21,7 @@ void add_node(uint32_t sw_key, struct node *node)
 
 }
 
-struct hash_node *find_node(int32_t node_id)
+struct hash_node * find_node(int32_t node_id)
 {
     struct hash_node *s = NULL;
 
@@ -32,13 +32,13 @@ struct hash_node *find_node(int32_t node_id)
 void del_node(struct hash_node * node)
 {
     HASH_DEL(hash_map, node);  /* node: pointer to deletee */
-    free(node));             /* optional; it's up to you! */
+    free(node);             /* optional; it's up to you! */
 }
 
 void del_all_node(void) 
 {
   struct hash_node *current_node, *tmp;
-  struct node *head, *next;
+  struct edge *head, *next;
 
   HASH_ITER(hh, hash_map, current_node, tmp) {
     HASH_DEL(hash_map, current_node);  /* delete; hash_map advances to next */
@@ -157,7 +157,7 @@ int tp_create(void)
                 find_node(sw1)->value->next = link_sw;
             }
 
-            tmp = find_node(sw2)->value->next;;
+            tmp = find_node(sw2)->value->next;
             for(; tmp != NULL; )// update sw-sw min delay
             {
                 if(tmp->node_id == sw1 && delay < tmp->delay)
@@ -176,8 +176,8 @@ int tp_create(void)
                 link_sw->delay = delay;
                 link_sw->port1 = port2;
                 link_sw->port2 = port1;
-                link_sw->next = find_node(sw2)->value->next;;
-                find_node(sw2)->value->next; = link_sw;
+                link_sw->next = find_node(sw2)->value->next;
+                find_node(sw2)->value->next = link_sw;
             }
         }
     }
@@ -190,10 +190,18 @@ int tp_create(void)
 int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 {
     struct edge *tmp;
-    uint64_t min_dst;
-    int32_t pre_node, min_node;
-    int32_t i, j;
+    uint64_t min_dst; // minimum distance
+    int32_t min_node; // minimum sw_key
+    int32_t pre_node; // pre node sw_key
+    int32_t i;
     struct hash_node *s;
+
+    uint32_t outsw; // out switch
+    tp_sw * dst_node; // out switch structure
+    uint32_t outport; // out switch port
+    struct flow fl;
+    struct flow mask;
+    mul_act_mdata_t mdata;
     
     // get start and end info
     uint32_t port_end;
@@ -228,8 +236,6 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
                 min_dst = s->value->dist;
                 min_node = s->node_id;
             }
-
-            printf("user id %d: name %s\n", s->id, s->name);
         }
 
         if(min_node == 0) break;// 找不到最短路径 
@@ -259,13 +265,9 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
         printf("ip route delay: %lu us\n",find_node(sw_end)->value->dist);
 
     // set flow-table
-    uint32_t outsw = sw_end;
-    struct edge *head, *next;
-    tp_sw * dst_node = tp_find_sw(outsw);
-    uint32_t outport = port_end;
-    struct flow fl;
-    struct flow mask;
-    mul_act_mdata_t mdata;
+    outsw = sw_end;
+    dst_node = tp_find_sw(outsw);
+    outport = port_end;
 
     do{
         if(dst_node != NULL) // store in local
@@ -312,7 +314,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     mul_app_act_free(&mdata);
 
     // free topo (hash map & node)
-    del_all_node(void);
+    del_all_node();
     node_sw_num = 0;
     return 1;
 }

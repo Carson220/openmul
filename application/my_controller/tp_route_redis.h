@@ -4,7 +4,6 @@
 #include "tp_graph.h"
 #include "mul_common.h"
 
-// #define MAXNUM 0xffffffff // max node number
 #define INF 0xffffffff // init minimum delay
 
 // edge structure
@@ -44,7 +43,7 @@ void add_node(uint32_t sw_key, struct node *node);
  * @node_id: sw_key
  * @return: hash node
  */
-struct hash_node *find_node(int32_t node_id)
+struct hash_node *find_node(int32_t node_id);
 
 /**
  * the function of del hash node
