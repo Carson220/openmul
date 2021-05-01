@@ -64,10 +64,10 @@ DB_RESULT Set_Link_Delay(uint32_t port1, uint32_t port2, uint64_t delay)
     /*执行redis命令*/
     if (FAILURE == exeRedisIntCmd(cmd))
     {
-        printf("set link:%lx, delay:%lx failure\n", port, delay);
+        printf("set link:%lx, delay:%lu us failure\n", port, delay);
         return FAILURE;
     }
-    printf("set link:%lx, delay:%lx success\n", port, delay);
+    printf("set link:%lx, delay:%lu us success\n", port, delay);
     return SUCCESS;
 }
 
@@ -105,10 +105,10 @@ DB_RESULT Set_Sw_Delay(uint16_t cid, uint8_t sid, uint64_t delay)
     /*执行redis命令*/
     if (FAILURE == exeRedisIntCmd(cmd))
     {
-        printf("set sw:%x, delay:%lx failure\n", id, delay);
+        printf("set sw:%x, delay:%lu us failure\n", id, delay);
         return FAILURE;
     }
-    printf("set sw:%x, delay:%lx success\n", id, delay);
+    printf("set sw:%x, delay:%lu us success\n", id, delay);
     return SUCCESS;
 }
 
@@ -185,7 +185,7 @@ uint64_t Get_Link_Delay(uint32_t port1, uint32_t port2)
     }
 
     //输出查询结果
-    printf("link delay:%s\n", reply->str);
+    printf("link delay:%s us\n", reply->str);
     ret = atoi(reply->str);
     freeReplyObject(reply);
     redisFree(context);
@@ -266,7 +266,7 @@ uint64_t Get_Sw_Delay(uint16_t cid, uint8_t sid)
     }
 
     //输出查询结果
-    printf("sw delay:%s\n", reply->str);
+    printf("sw delay:%s us\n", reply->str);
     ret = atoi(reply->str);
     freeReplyObject(reply);
     redisFree(context);

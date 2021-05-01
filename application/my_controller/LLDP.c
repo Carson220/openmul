@@ -142,8 +142,9 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             link_n2->delay = delay;
 
             // write in redis
-            Set_Link_Delay(link_n1->port_h, link_n1->port_n, delay);
-            Set_Link_Delay(link_n2->port_h, link_n2->port_n, delay);
+            
+            Set_Link_Delay(sw1->key + link_n1->port_h, sw2->key + link_n1->port_n, delay);
+            Set_Link_Delay(sw2->key + link_n2->port_h, sw1->key + link_n2->port_n, delay);
         }
         else
         {

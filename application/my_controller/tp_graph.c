@@ -171,11 +171,11 @@ int tp_add_link(uint32_t key1, uint32_t port1, uint32_t key2, uint32_t port2)
     memset(n1ton2, 0, sizeof(tp_link));
     memset(n2ton1, 0, sizeof(tp_link));
     n1ton2->key = key2;
-    n1ton2->port_h = port1;
-    n1ton2->port_n = port2;
+    n1ton2->port_h = (port1 & 0x000000ff);
+    n1ton2->port_n = (port2 & 0x000000ff);
     n2ton1->key = key1;
-    n2ton1->port_h = port2;
-    n2ton1->port_n = port1;
+    n2ton1->port_h = (port2 & 0x000000ff);
+    n2ton1->port_n = (port1 & 0x000000ff);
     __tp_head_add_link(n1, n1ton2);
     __tp_head_add_link(n2, n2ton1);
 
