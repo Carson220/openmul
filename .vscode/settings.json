@@ -11,6 +11,8 @@
         "if.h": "c",
         "array": "c",
         "string": "c",
-        "string_view": "c"
+        "string_view": "c",
+        "tp_graph.h": "c",
+        "db_wr.h": "c"
     }
 }

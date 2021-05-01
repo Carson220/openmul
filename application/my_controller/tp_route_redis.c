@@ -6,10 +6,53 @@
 
 extern tp_sw * tp_graph;
 extern tp_swdpid_glabolkey * key_table;
+struct hash_node * hash_map = NULL;
 
-struct node node_sw[MAXNUM];// sw-sw
-int16_t map_sw[MAXNUM]={0,}; // hash map
 int32_t node_sw_num = 0;
+
+void add_node(uint32_t sw_key, struct node *node)
+{
+    struct hash_node * s = NULL;
+
+    s = (struct hash_node *)malloc(sizeof *s);
+    s->node_id = sw_key;
+    s->value = node;
+    HASH_ADD_INT(hash_map, node_id, s); /* node_id: name of key field */
+
+}
+
+struct hash_node *find_node(int32_t node_id)
+{
+    struct hash_node *s = NULL;
+
+    HASH_FIND_INT(hash_map, &node_id, s);  /* s: output pointer */
+    return s;
+}
+
+void del_node(struct hash_node * node)
+{
+    HASH_DEL(hash_map, node);  /* node: pointer to deletee */
+    free(node));             /* optional; it's up to you! */
+}
+
+void del_all_node(void) 
+{
+  struct hash_node *current_node, *tmp;
+  struct node *head, *next;
+
+  HASH_ITER(hh, hash_map, current_node, tmp) {
+    HASH_DEL(hash_map, current_node);  /* delete; hash_map advances to next */
+    head = current_node->value->next;
+    next = head->next;
+    for(; head != NULL; )
+    {
+        free(head);
+        head = next;
+        next = head->next;
+    }
+    free(current_node);             /* optional- if you want to free  */
+  }
+}
 
 int tp_create(void)
 {
@@ -19,7 +62,9 @@ int tp_create(void)
     uint64_t port, delay;
     redisContext *context;
     redisReply *reply;
-    struct edge *link_sw, tmp;
+    struct edge *link_sw, *tmp;
+    struct node *node;
+    int i = 0;
 
     /*组装Redis命令*/
     snprintf(cmd, CMD_MAX_LENGHT, "hgetall link_delay");
@@ -33,7 +78,7 @@ int tp_create(void)
     {
         redisFree(context);
         printf("%d connect redis server failure:%s\n", __LINE__, context->errstr);
-        return ret;
+        return 0;
     }
     printf("connect redis server success\n");
 
@@ -43,13 +88,12 @@ int tp_create(void)
     {
         printf("%d execute command:%s failure\n", __LINE__, cmd);
         redisFree(context);
-        return ret;
+        return 0;
     }
 
     // 输出查询结果 
     // printf("%d,%lu\n",reply->type,reply->elements);
     printf("element num = %lu\n",reply->elements);
-    int i = 0;
     for(i=0;i < reply->elements;i++)
     {
         if(i%2 ==0)// port
@@ -62,23 +106,25 @@ int tp_create(void)
             port1 = (uint8_t)((port & 0x000000ff00000000) >> 32);
             port2 = (uint8_t)(port & 0x00000000000000ff);
 
-            if(map_sw[sw1]==0)
+            if(find_node(sw1) == NULL)
             {
+                node = (struct node*)malloc(sizeof(struct node));
+                node->node_id = sw1;
+                node->dist = INF;
+                node->flag = false;
+                node->rt_pre = 0;
+                add_node(sw1, node);
                 node_sw_num++;
-                map_sw[sw1] = node_sw_num;
-                node_sw[map_sw[sw1]].node_id = sw1;
-                node_sw[map_sw[sw1]].dist = INF;
-                node_sw[map_sw[sw1]].flag = false;
-                node_sw[map_sw[sw1]].rt_pre = 0;
             }
-            if(map_sw[sw2]==0)
+            if(find_node(sw2) == NULL)
             {
+                node = (struct node*)malloc(sizeof(struct node));
+                node->node_id = sw2;
+                node->dist = INF;
+                node->flag = false;
+                node->rt_pre = 0;
+                add_node(sw2, node);
                 node_sw_num++;
-                map_sw[sw2] = node_sw_num;
-                node_sw[map_sw[sw2]].node_id = sw2;
-                node_sw[map_sw[sw2]].dist = INF;
-                node_sw[map_sw[sw2]].flag = false;
-                node_sw[map_sw[sw2]].rt_pre = 0;
             }
         }
         else// delay
@@ -88,7 +134,7 @@ int tp_create(void)
 
             // construct sw<->sw topo
             // you can skip "for" to save time
-            tmp = node_sw[map_sw[sw1]].next;
+            tmp = find_node(sw1)->value->next;
             for(; tmp != NULL; )// update sw-sw min delay
             {
                 if(tmp->node_id == sw2 && delay < tmp->delay)
@@ -107,11 +153,11 @@ int tp_create(void)
                 link_sw->delay = delay;
                 link_sw->port1 = port1;
                 link_sw->port2 = port2;
-                link_sw->next = node_sw[map_sw[sw1]].next ;
-                node_sw[map_sw[sw1]].next = link_sw;
+                link_sw->next = find_node(sw1)->value->next;
+                find_node(sw1)->value->next = link_sw;
             }
 
-            tmp = node_sw[map_sw[sw2]].next;
+            tmp = find_node(sw2)->value->next;;
             for(; tmp != NULL; )// update sw-sw min delay
             {
                 if(tmp->node_id == sw1 && delay < tmp->delay)
@@ -130,68 +176,76 @@ int tp_create(void)
                 link_sw->delay = delay;
                 link_sw->port1 = port2;
                 link_sw->port2 = port1;
-                link_sw->next = node_sw[map_sw[sw2]].next ;
-                node_sw[map_sw[sw2]].next = link_sw;
+                link_sw->next = find_node(sw2)->value->next;;
+                find_node(sw2)->value->next; = link_sw;
             }
         }
     }
 
     freeReplyObject(reply);
     redisFree(context);
-    return 0;
+    return 1;
 }
 
-int tp_rt_redis_ip(uint32_t nw_src, uint32_t nw_dst)
+int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 {
+    struct edge *tmp;
+    uint64_t min_dst;
+    int32_t pre_node, min_node;
+    int32_t i, j;
+    struct hash_node *s;
+    
+    // get start and end info
+    uint32_t port_end;
+    uint32_t sw_start, sw_end;
+    port_end = Get_Pc_Sw_Port(ip_dst);
+    sw_start = sw_src;
+    sw_end = (port_end & 0xffffff00);
+
     // create topo by redis
     tp_create();
 
-    // get start and end info
-    uint32_t port_start, port_end;
-    uint32_t sw_start, sw_end;
-    port_start = Get_Pc_Sw_Port(nw_src);  
-    port_end = Get_Pc_Sw_Port(nw_dst);
-    sw_start = (port_start & 0xffffff00);
-    sw_end = (port_end & 0xffffff00);
-
     // calculate route sw-sw
-    struct edge *tmp = node_sw[map_sw[sw_start]].next;
+    tmp = find_node(sw_start)->value->next;
     for(; tmp != NULL; )//从起点开始 
 	{
-        node_sw[map_sw[tmp->node_id]].dist = tmp->delay;
-        node_sw[sw_start].next = node_sw[sw_start].next->next;
+        find_node(tmp->node_id)->value->dist = tmp->delay;
+        find_node(sw_start)->value->next = find_node(sw_start)->value->next->next;
 	}
-    node_sw[map_sw[sw_start]].dist = 0;
-    node_sw[map_sw[sw_start]].flag = 1;
+    find_node(sw_start)->value->dist = 0;
+    find_node(sw_start)->value->flag = 1;
 
-	uint64_t min_node, min_dist;
-    int32_t pre_node = map_sw[sw_start];
-    int32_t i, j;
+    pre_node = sw_start;
     for(i = 0;i < node_sw_num;i ++)// 循环N次
     {
         min_node = 0;
         min_dst = INF;
-        for(j = 1; i <= node_sw_num; j ++)//寻找下一个固定标号
+
+        for (s = hash_map; s != NULL; s = s->hh.next) //寻找下一个固定标号
         {
-            if(!node_sw[j].flag && node_sw[j].dist < min_dst)
+            if(!s->value->flag && s->value->dist < min_dst)
             {
-                min_dst = node_sw[j].dist;
-                min_node = j;
+                min_dst = s->value->dist;
+                min_node = s->node_id;
             }
+
+            printf("user id %d: name %s\n", s->id, s->name);
         }
+
         if(min_node == 0) break;// 找不到最短路径 
 
-        node_sw[min_node].flag = 1;// 改为固定标号
-        node_sw[min_node].rt_pre = pre_node;
+        find_node(min_node)->value->flag = 1; // 改为固定标号
+        find_node(min_node)->value->rt_pre = pre_node;
         pre_node = min_node;
-        if(min_node == map_sw[sw_end]) break;// 找到最短路径
 
-        tmp = node_sw[min_node].next;
+        if(min_node == sw_end) break;// 找到最短路径
+
+        tmp = find_node(min_node)->value->next;
         for(; tmp != NULL; )// 更新相邻节点标号值 
         {
-            if(!node_sw[map_sw[tmp->node_id]].flag && min_dst + tmp->delay < node_sw[map_sw[tmp->node_id]].dist)
+            if(!find_node(tmp->node_id)->value->flag && min_dst + tmp->delay < find_node(tmp->node_id)->value->dist)
             {
-                node_sw[map_sw[tmp->node_id]].dist = min_dst + tmp->delay;
+                find_node(tmp->node_id)->value->dist = min_dst + tmp->delay;
             }
         }
 
@@ -202,12 +256,11 @@ int tp_rt_redis_ip(uint32_t nw_src, uint32_t nw_dst)
         return 0;
     }
 	else 
-        printf("ip route delay: %lu us\n",node_sw[map_sw[sw_end]].dist);
+        printf("ip route delay: %lu us\n",find_node(sw_end)->value->dist);
 
     // set flow-table
     uint32_t outsw = sw_end;
-    struct edge *tmp;
-    struct edge *head, next;
+    struct edge *head, *next;
     tp_sw * dst_node = tp_find_sw(outsw);
     uint32_t outport = port_end;
     struct flow fl;
@@ -222,9 +275,9 @@ int tp_rt_redis_ip(uint32_t nw_src, uint32_t nw_dst)
             memset(&mdata, 0, sizeof(mdata));
             of_mask_set_dc_all(&mask);
         
-            fl.ip.nw_src = nw_src;
+            fl.ip.nw_src = ip_src;
             of_mask_set_nw_src(&mask, 32);
-            fl.ip.nw_dst = nw_dst;
+            fl.ip.nw_dst = ip_dst;
             of_mask_set_nw_dst(&mask, 32);
 
             mul_app_act_alloc(&mdata);
@@ -236,20 +289,21 @@ int tp_rt_redis_ip(uint32_t nw_src, uint32_t nw_dst)
                                 0, 0, C_FL_PRIO_FWD, C_FL_ENT_NOCACHE);
         }
 
-        if(node_sw[map_sw[outsw]].rt_pre != 0)
+        if(find_node(outsw)->value->rt_pre != 0)
         {
-            tmp = node_sw[map_sw[outsw]].next;
+            tmp = find_node(outsw)->value->next;
             for(; tmp != NULL; )
             {
-                if(tmp->node_id == node_sw[map_sw[outsw]].rt_pre)
+                if(tmp->node_id == find_node(outsw)->value->rt_pre)
                 {
                     outport = tmp->port2;
+                    break;
                 }
                 tmp = tmp->next;
             }
-            
-            outsw = node_sw[node_sw[map_sw[outsw]].rt_pre].node_id
-            dest_node = tp_find_sw(outsw);
+
+            outsw = find_node(find_node(outsw)->value->rt_pre)->value->node_id;
+            dst_node = tp_find_sw(outsw);
         }
         else
             break;
@@ -257,19 +311,8 @@ int tp_rt_redis_ip(uint32_t nw_src, uint32_t nw_dst)
     }while(1);
     mul_app_act_free(&mdata);
 
-    // free topo (map/next)
-    for(i = 1; i <= node_sw_num; i ++)
-    {
-        head = node_sw[i].next;
-        next = head->next;
-        for(; head != NULL; )
-        {
-            free(head);
-            head = next;
-            next = head->next;
-        }
-    }
-    memset(map_sw, 0, sizeof(map_sw));
+    // free topo (hash map & node)
+    del_all_node(void);
     node_sw_num = 0;
     return 1;
 }
