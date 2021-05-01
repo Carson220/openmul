@@ -186,7 +186,7 @@ uint64_t Get_Link_Delay(uint32_t port1, uint32_t port2)
 
     //输出查询结果
     printf("link delay:%s us\n", reply->str);
-    ret = atoi(reply->str);
+    ret = atol(reply->str);
     freeReplyObject(reply);
     redisFree(context);
     return ret;
@@ -267,7 +267,7 @@ uint64_t Get_Sw_Delay(uint16_t cid, uint8_t sid)
 
     //输出查询结果
     printf("sw delay:%s us\n", reply->str);
-    ret = atoi(reply->str);
+    ret = atol(reply->str);
     freeReplyObject(reply);
     redisFree(context);
     return ret;
