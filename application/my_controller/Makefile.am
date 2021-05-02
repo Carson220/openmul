@@ -16,7 +16,6 @@ INCLUDES = -I. -I$(top_srcdir)/mul -I$(top_srcdir)/common/ \
            -I$(top_srcdir)/common-libs/mul-lib/include/ \
            -I$(top_srcdir)/common-libs/util-linux/libuuid/src/
 
-LIBS = -lhiredis
 
 DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\"
 
@@ -45,12 +44,14 @@ mulmy_controller_LDADD = \
                 $(top_srcdir)/common-libs/mul-lib/.libs/libmulutil.a  \
                 $(top_srcdir)/mul/./.libs/libmul.a  \
                 $(top_srcdir)/services/loadable/topo_routing/./.libs/libmultr.a -lrt \
-                -lcrypto -lssl -lglib-2.0
+                -lcrypto -lssl -lglib-2.0 \
+                $(top_srcdir)/application/my_controller/libhiredis.a 
+
 
 if HAVE_MUL_VTY
 mulmy_controller_LDADD += $(top_srcdir)/common-libs/3rd-party/quagga-lib/.libs/libcli.a
 endif
 
-mulmy_controller_LDFLAGS = $(LD_FLAGS) -lpthread -levent -lcrypt 
+mulmy_controller_LDFLAGS = $(LD_FLAGS) -lpthread -levent -lcrypt -lhiredis
 
 noinst_HEADERS = my_controller.h uthash.h tp_graph.h tp_route.h LLDP.h ARP.h heap.h db_wr.h tp_route_redis.h

@@ -14,6 +14,8 @@
         "string_view": "c",
         "tp_graph.h": "c",
         "db_wr.h": "c",
-        "config.h": "c"
+        "config.h": "c",
+        "vty.h": "c",
+        "crypt.h": "c"
     }
 }
