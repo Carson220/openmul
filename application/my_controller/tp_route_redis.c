@@ -205,6 +205,7 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     char cmd[CMD_MAX_LENGHT] = {0};
     uint64_t ip = (((uint64_t)ip_src) << 32) + ip_dst;
     int route_is_exist = 0;
+    int32_t i;
 
     redisContext *context;
     redisReply *reply;
@@ -243,6 +244,7 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     // 输出查询结果 
     // printf("%d,%lu\n",reply->type,reply->elements);
     printf("element num = %lu\n",reply->elements);
+    if(reply->elements == 0) return 0;
     for(i=0;i < reply->elements;i++)
     {
         printf("out_sw_port: %s",reply->element[i]->str);
@@ -285,7 +287,8 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 
     freeReplyObject(reply);
     redisFree(context);
-    return 1;
+    if(route_is_exist) return 1;
+    else return 0;
 }
 
 int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
