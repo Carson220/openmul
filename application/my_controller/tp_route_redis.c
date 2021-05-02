@@ -294,14 +294,19 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
             of_mask_set_nw_src(&mask, 32);
             fl.ip.nw_dst = ip_dst;
             of_mask_set_nw_dst(&mask, 32);
+            
+            // fix set flow table error
+            fl.dl_type = htons(ETH_TYPE_IP);
+            of_mask_set_dl_type(&mask);
 
             mul_app_act_alloc(&mdata);
             mul_app_act_set_ctors(&mdata, dst_node->sw_dpid);
             mul_app_action_output(&mdata, outport); 
 
+
             mul_app_send_flow_add(MY_CONTROLLER_APP_NAME, NULL, dst_node->sw_dpid, &fl, &mask,
-                                (uint32_t)-1, mdata.act_base, mul_app_act_len(&mdata),
-                                0, 0, C_FL_PRIO_FWD, C_FL_ENT_NOCACHE);
+                                0xffffffff, mdata.act_base, mul_app_act_len(&mdata),
+                                0, 0, C_FL_PRIO_EXM, C_FL_ENT_NOCACHE);
         }
 
         if(find_node(outsw)->value->rt_pre != 0)

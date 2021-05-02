@@ -163,12 +163,15 @@ void lldp_send_packet(uint64_t sw_dpid, lldp_pkt_t *buffer, uint32_t inport, uin
 {
     struct of_pkt_out_params  parms;
     struct mul_act_mdata      mdata;
+    int ret = -1;
 
     memset(&parms, 0, sizeof(parms));
     mul_app_act_alloc(&mdata);
     mdata.only_acts = true;
     mul_app_act_set_ctors(&mdata, sw_dpid);
-    mul_app_action_output(&mdata, outport);
+    ret = mul_app_action_output(&mdata, outport);
+    if(ret == 0) c_log_debug("\n\n\nset action output sucess!\n\n\n");
+    else c_log_debug("\n\n\nset action output fail!\n\n\n");
     parms.buffer_id = -1;
     parms.in_port = inport;
     parms.action_list = mdata.act_base;
