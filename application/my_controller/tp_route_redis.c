@@ -200,6 +200,94 @@ int tp_create(void)
     return 1;
 }
 
+int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
+{
+    char cmd[CMD_MAX_LENGHT] = {0};
+    uint64_t ip = (((uint64_t)ip_src) << 32) + ip_dst;
+    int route_is_exist = 0;
+
+    redisContext *context;
+    redisReply *reply;
+
+    uint32_t out_sw_port, outsw, outport; // sw_key+port sw_key port
+    tp_sw * dst_node; // out switch structure
+    struct flow fl;
+    struct flow mask;
+    mul_act_mdata_t mdata;
+
+    /*组装Redis命令*/
+    snprintf(cmd, CMD_MAX_LENGHT, "lrange %lu 0 -1", ip);
+    // for(int i=0;cmd[i]!='\0';i++)
+    // 	printf("%c",cmd[i]);
+    // printf("\n");
+
+    /*连接redis*/
+    context = redisConnect(REDIS_SERVER_IP, REDIS_SERVER_PORT);
+    if (context->err)
+    {
+        redisFree(context);
+        printf("%d connect redis server failure:%s\n", __LINE__, context->errstr);
+        return 0;
+    }
+    printf("connect redis server success\n");
+
+    /*执行redis命令*/
+    reply = (redisReply *)redisCommand(context, cmd);
+    if (NULL == reply)
+    {
+        printf("%d execute command:%s failure\n", __LINE__, cmd);
+        redisFree(context);
+        return 0;
+    }
+
+    // 输出查询结果 
+    // printf("%d,%lu\n",reply->type,reply->elements);
+    printf("element num = %lu\n",reply->elements);
+    for(i=0;i < reply->elements;i++)
+    {
+        printf("out_sw_port: %s",reply->element[i]->str);
+        out_sw_port = atoi(reply->element[i]->str);
+        outsw = (out_sw_port & 0xffffff00);
+        if(outsw == sw_src) route_is_exist = 1;
+        if(route_is_exist)
+        {
+            // set flow_table
+            dst_node = tp_find_sw(outsw);
+            outport = (out_sw_port & 0x000000ff);
+            if(dst_node != NULL) // store in local
+            {
+                //流表下发
+                c_log_debug("set flow table");
+                memset(&fl, 0, sizeof(fl));
+                memset(&mdata, 0, sizeof(mdata));
+                of_mask_set_dc_all(&mask);
+            
+                fl.ip.nw_src = ip_src;
+                of_mask_set_nw_src(&mask, 32);
+                fl.ip.nw_dst = ip_dst;
+                of_mask_set_nw_dst(&mask, 32);
+                
+                // fix set flow table error
+                fl.dl_type = htons(ETH_TYPE_IP);
+                of_mask_set_dl_type(&mask);
+
+                mul_app_act_alloc(&mdata);
+                mul_app_act_set_ctors(&mdata, dst_node->sw_dpid);
+                mul_app_action_output(&mdata, outport); 
+
+
+                mul_app_send_flow_add(MY_CONTROLLER_APP_NAME, NULL, dst_node->sw_dpid, &fl, &mask,
+                                    0xffffffff, mdata.act_base, mul_app_act_len(&mdata),
+                                    0, 0, C_FL_PRIO_EXM, C_FL_ENT_NOCACHE);
+            }
+        }
+    }
+
+    freeReplyObject(reply);
+    redisFree(context);
+    return 1;
+}
+
 int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 {
     struct edge *tmp;
@@ -221,6 +309,11 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     port_end = Get_Pc_Sw_Port(ip_dst);
     sw_start = sw_src;
     sw_end = (port_end & 0xffffff00);
+
+    // lookup route from redis and set flow_table
+    if(route_lookup(sw_src, ip_src, ip_dst))
+        return 1;
+
 
     // create topo by redis
     tp_create();
@@ -276,6 +369,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 
 
     // set flow-table
+    Clr_Route(ip_src, ip_dst);
     outsw = sw_end;
     dst_node = tp_find_sw(outsw);
     outport = (port_end & 0x000000ff);
@@ -308,6 +402,9 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
                                 0xffffffff, mdata.act_base, mul_app_act_len(&mdata),
                                 0, 0, C_FL_PRIO_EXM, C_FL_ENT_NOCACHE);
         }
+
+        // write into redis
+        Set_Route(ip_src, ip_dst, outsw + outport);
 
         if(find_node(outsw)->value->rt_pre != 0)
         {

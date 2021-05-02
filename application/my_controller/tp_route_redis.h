@@ -71,4 +71,12 @@ int tp_create(void);
  */
 int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst);
 
+/**
+ * the function of lookup ip route and set flow_table
+ * @sw_src: source switch global key
+ * @ip_src: ip source
+ * @ip_dst: ip destination
+ * @return: success 1, fail 0
+ */
+int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst);
 #endif

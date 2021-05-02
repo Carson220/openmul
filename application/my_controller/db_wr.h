@@ -44,14 +44,18 @@ typedef enum DB_RESULT
 // }Sw_Struct;
 
 /*写函数*/
-// DB_RESULT Set_Ctrl_Id(uint32_t ip, uint16_t id);/*设置控制器信息 IP->ID*/
-DB_RESULT Set_Link_Delay(uint32_t port1, uint32_t port2, uint64_t delay); /*设置链路信息 (node1,node2)->时延*/
-DB_RESULT Set_Pc_Sw_Port(uint32_t ip, uint32_t port);                     /*设置PC信息 IP->连接的交换机端口*/
-DB_RESULT Set_Sw_Delay(uint16_t cid, uint8_t sid, uint64_t delay);        /*设置交换机信息 (CID,SID)->到控制器的时延*/
+// DB_RESULT Set_Ctrl_Id(uint32_t ip, uint16_t id);                         /*设置控制器信息 IP->ID*/
+DB_RESULT Set_Link_Delay(uint32_t port1, uint32_t port2, uint64_t delay);   /*设置链路信息 (node1,node2)->时延*/
+DB_RESULT Set_Pc_Sw_Port(uint32_t ip, uint32_t port);                       /*设置PC信息 IP->连接的交换机端口*/
+DB_RESULT Set_Sw_Delay(uint16_t cid, uint8_t sid, uint64_t delay);          /*设置交换机信息 (CID,SID)->到控制器的时延*/
+DB_RESULT Clr_Route(uint32_t ip_src, uint32_t ip_dst);                      /*清除路由信息*/
+DB_RESULT Set_Route(uint32_t ip_src, uint32_t ip_dst, uint32_t out_sw_port);/*设置路由信息 添加到列表头部*/
+
 /*读函数*/
 uint16_t Get_Ctrl_Id(uint32_t ip);                       /*获取控制器ID*/
 uint64_t Get_Link_Delay(uint32_t port1, uint32_t port2); /*获取链路时延*/
 uint32_t Get_Pc_Sw_Port(uint32_t ip);                    /*获取PC连接的交换机端口*/
 uint64_t Get_Sw_Delay(uint16_t cid, uint8_t sid);        /*获取交换机到控制器的时延*/
+
 /*执行命令*/
 DB_RESULT exeRedisIntCmd(char *cmd); // 写操作返回int
