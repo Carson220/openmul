@@ -42,15 +42,18 @@ void del_all_node(void)
 
   HASH_ITER(hh, hash_map, current_node, tmp) {
     head = current_node->value->next;
-    next = head->next;
     for(; head != NULL; )
     {
+        next = head->next;
+        // c_log_debug("free sw %x edge head node_id %x, delay %lu us", current_node->value->node_id, head->node_id, head->delay);
         free(head);
         head = next;
-        next = head->next;
     }
+    free(current_node->value);
+    // c_log_debug("free sw %x node", current_node->value->node_id);
     HASH_DEL(hash_map, current_node);  /* delete; hash_map advances to next */
     free(current_node);             /* optional- if you want to free  */
+    // c_log_debug("free hash node");
   }
 }
 
@@ -100,16 +103,16 @@ int tp_create(void)
         {
             printf("link %s delay: ",reply->element[i]->str);
             port = atol(reply->element[i]->str);
-            // c_log_debug("port = %lu\n", port);
+            // c_log_debug("port = %lu", port);
             
             sw1 = (uint32_t)((port & 0xffffff0000000000) >> 32);
-            // c_log_debug("sw1 = %x\n", sw1);
+            // c_log_debug("sw1 = %x", sw1);
             sw2 = (uint32_t)(port & 0x00000000ffffff00);
-            // c_log_debug("sw1 = %x\n", sw2);
+            // c_log_debug("sw1 = %x", sw2);
             port1 = (uint8_t)((port & 0x000000ff00000000) >> 32);
-            // c_log_debug("port1 = %u\n", port1);
+            // c_log_debug("port1 = %u", port1);
             port2 = (uint8_t)(port & 0x00000000000000ff);
-            // c_log_debug("port2 = %u\n", port2);
+            // c_log_debug("port2 = %u", port2);
 
             if(find_node(sw1) == NULL)
             {
@@ -141,10 +144,11 @@ int tp_create(void)
 
             // construct sw<->sw topo
             // you can skip "for" to save time
+            // fix 无向图 避免重复存储边
             tmp = find_node(sw1)->value->next;
             for(; tmp != NULL; )// update sw-sw min delay
             {
-                if(tmp->node_id == sw2 && delay < tmp->delay)
+                if(tmp->node_id == sw2 && delay <= tmp->delay)
                 {
                     tmp->delay = delay;
                     tmp->port1 = port1;
@@ -162,13 +166,13 @@ int tp_create(void)
                 link_sw->port2 = port2;
                 link_sw->next = find_node(sw1)->value->next;
                 find_node(sw1)->value->next = link_sw;
-                // c_log_debug("sw %x link node_id = %x, delay = %lu us\n", sw1, find_node(sw1)->value->next->node_id, find_node(sw1)->value->next->delay);
+                // c_log_debug("sw %x link node_id = %x, delay = %lu us", sw1, find_node(sw1)->value->next->node_id, find_node(sw1)->value->next->delay);
             }
 
             tmp = find_node(sw2)->value->next;
             for(; tmp != NULL; )// update sw-sw min delay
             {
-                if(tmp->node_id == sw1 && delay < tmp->delay)
+                if(tmp->node_id == sw1 && delay <= tmp->delay)
                 {
                     tmp->delay = delay;
                     tmp->port1 = port2;
@@ -186,7 +190,7 @@ int tp_create(void)
                 link_sw->port2 = port1;
                 link_sw->next = find_node(sw2)->value->next;
                 find_node(sw2)->value->next = link_sw;
-                // c_log_debug("sw %x link node_id = %x, delay = %lu us\n", sw2, find_node(sw2)->value->next->node_id, find_node(sw2)->value->next->delay);
+                // c_log_debug("sw %x link node_id = %x, delay = %lu us", sw2, find_node(sw2)->value->next->node_id, find_node(sw2)->value->next->delay);
             }
         }
     }
@@ -220,7 +224,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 
     // create topo by redis
     tp_create();
-    // c_log_debug("finish to create topo\n");
+    // c_log_debug("finish to create topo");
 
     // calculate route sw-sw
     tmp = find_node(sw_start)->value->next;
@@ -261,7 +265,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
         }
 
     }
-    c_log_debug("finish to calculate route\n");
+    c_log_debug("finish to calculate route");
 	if(min_node == 0)
     {
         printf("no path\n");
@@ -275,13 +279,13 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     outsw = sw_end;
     dst_node = tp_find_sw(outsw);
     outport = (port_end & 0x000000ff);
-    c_log_debug("outsw = %x, outport = %x\n", outsw, outport);
+    c_log_debug("outsw = %x, outport = %x", outsw, outport);
 
     do{
         if(dst_node != NULL) // store in local
         {
             //流表下发
-            c_log_debug("set flow table\n");
+            c_log_debug("set flow table");
             memset(&fl, 0, sizeof(fl));
             memset(&mdata, 0, sizeof(mdata));
             of_mask_set_dc_all(&mask);
@@ -302,7 +306,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 
         if(find_node(outsw)->value->rt_pre != 0)
         {
-            c_log_debug("sw %x pre_node: %x\n", outsw, find_node(outsw)->value->rt_pre);
+            c_log_debug("sw %x pre_node: %x", outsw, find_node(outsw)->value->rt_pre);
             tmp = find_node(outsw)->value->next;
             for(; tmp != NULL; )
             {
@@ -315,7 +319,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
             }
 
             outsw = find_node(outsw)->value->rt_pre;
-            c_log_debug("outsw = %x, outport = %x\n", outsw, outport);
+            c_log_debug("outsw = %x, outport = %x", outsw, outport);
             dst_node = tp_find_sw(outsw);
         }
         else
@@ -323,12 +327,12 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
         
     }while(1);
 
-    c_log_debug("finish to set flow table\n");
+    c_log_debug("finish to set flow table");
     mul_app_act_free(&mdata);
 
     // del topo (hash map & node)
     del_all_node();
-    c_log_debug("free all hash node to del topo\n");
+    c_log_debug("free all hash node to del topo");
     node_sw_num = 0;
     return 1;
 }
