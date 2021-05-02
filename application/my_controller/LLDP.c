@@ -77,15 +77,16 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
               uint8_t *raw, size_t pkt_len)
 {
     uint64_t now_timeval, delay, delay_tmp;
-    uint64_t sw1_key = tp_get_sw_glabol_id(sw->dpid);
+    uint32_t sw1_key = tp_get_sw_glabol_id(sw->dpid);
     tp_sw * sw1 = tp_find_sw(sw1_key);
     lldp_pkt_t * lldp = (lldp_pkt_t*)raw;
-    uint64_t sw2_key = ntohl(lldp->chassis_tlv_id);
+    uint32_t sw2_key = ntohl(lldp->chassis_tlv_id);
     tp_sw * sw2 = tp_find_sw(sw2_key);
     tp_link * link_n1;
     tp_link * link_n2;
     uint16_t cid;
     uint8_t sid;
+    uint64_t sw2_delay;
 
     // c_log_debug("sw2_key:%x", sw2_key);
     now_timeval = lldp_get_timeval();
@@ -117,7 +118,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
         c_log_debug("lldp_stos_pkt between s%x and s%x", sw1->key, sw2->key);
         if(sw2)
         {//in the same area
-            //add edge between the sw_node. return 0 if added them before
+            //add edge between the sw_node.
             tp_add_link(sw1->key, inport, sw2->key, ntohs(lldp->port_tlv_id));
             link_n1 = __tp_get_link_in_head(sw1->list_link, sw2_key);
             link_n2 = __tp_get_link_in_head(sw2->list_link, sw1_key);
@@ -141,15 +142,47 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             link_n1->delay = delay;
             link_n2->delay = delay;
 
-            // write in redis
-            
+            // write in redis      
             Set_Link_Delay(sw1->key + link_n1->port_h, sw2->key + link_n1->port_n, delay);
             Set_Link_Delay(sw2->key + link_n2->port_h, sw1->key + link_n2->port_n, delay);
         }
-        else
+        else//LLDP from other area
         {
-            //LLDP from other area
-            
+            //add edge between the sw_node.
+            tp_add_link(sw1->key, inport, sw2->key, ntohs(lldp->port_tlv_id));
+
+            if(!__tp_get_link_in_head(sw1->list_link, sw2_key))
+            {
+                link_n1 = malloc(sizeof(tp_link));
+                memset(link_n1, 0, sizeof(tp_link));
+                link_n1->key = sw2_key;
+                link_n1->port_h = (inport & 0x000000ff);
+                link_n1->port_n = (ntohs(lldp->port_tlv_id) & 0x000000ff);
+                __tp_head_add_link(sw1, link_n1);
+            }
+
+            link_n1 = __tp_get_link_in_head(sw1->list_link, sw2_key);
+            link_n1->delay_measure_times += 1;
+            if(link_n1->delay_measure_times < DELAY_MEASURE_TIMES)lldp_flood(sw1);
+
+            delay_tmp = now_timeval-ntohll(lldp->user_tlv_data_timeval);
+            cid = (uint16_t)((sw2->key & 0xffff0000) >> 16);
+            sid = (uint8_t)((sw2->key & 0x0000ff00) >> 8);
+            sw2_delay = Get_Sw_Delay(cid, sid);
+            c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
+                link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2->key, sw2_delay);
+            delay_tmp -= (sw1->delay + sw2_delay);
+            c_log_debug("%dth sw%x <-> sw%x link delay: %lu us", \
+                link_n1->delay_measure_times, sw1->key, sw2->key, delay_tmp);
+            // c_log_debug("get last time link delay: %llu us", link_n1->delay);
+            if(link_n1->delay)delay = (link_n1->delay + delay_tmp)/2;
+            else delay = delay_tmp;
+            c_log_debug("average link delay: %lu us", delay);
+            link_n1->delay = delay;
+
+            // write in redis      
+            Set_Link_Delay(sw1->key + link_n1->port_h, sw2_key + link_n1->port_n, delay);
+            Set_Link_Delay(sw2_key + link_n1->port_n, sw1->key + link_n1->port_h, delay);
         }
         
         break;
