@@ -45,7 +45,7 @@ mulmy_controller_LDADD = \
                 $(top_srcdir)/mul/./.libs/libmul.a  \
                 $(top_srcdir)/services/loadable/topo_routing/./.libs/libmultr.a -lrt \
                 -lcrypto -lssl -lglib-2.0 \
-                $(top_srcdir)/application/my_controller/libhiredis.a 
+                $(top_srcdir)/application/libhiredis.a 
 
 
 if HAVE_MUL_VTY
