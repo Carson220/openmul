@@ -49,6 +49,13 @@ void arp_distory(void);
 void * get_proxy_arp_reply(struct arp_eth_header *arp_req, uint8_t fab_mac[ETH_ADDR_LEN]);
 
 /**
+ * judge src mac is valid
+ * @src_mac: the arp src mac address
+ * @return: valid return 1, invalid return 0
+ */
+int src_mac_is_valid(uint8_t src_mac[ETH_ADDR_LEN]);
+
+/**
  * the function of arp process
  * @sw: switch argument passed by infra layer (read-only)
  * @fl: Flow associated with the packet-in

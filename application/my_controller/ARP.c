@@ -34,7 +34,6 @@ void arp_delete_key(uint32_t key_ip)
     free(s);             /* optional; it's up to you! */
 }
 
-
 void arp_distory(void)
 {
     arp_hash_table_t * s, * tmp;
@@ -45,6 +44,14 @@ void arp_distory(void)
     }
 
     arp_table = NULL;
+}
+
+int src_mac_is_valid(uint8_t src_mac[ETH_ADDR_LEN])
+{
+    uint8_t ctrl_mac[OFP_ETH_ALEN] = {0x02, 0x42, 0xf7, 0x6d, 0x93, 0x67};
+    if(memcmp(src_mac, ctrl_mac, OFP_ETH_ALEN) == 0)// same -> invalid
+        return 0;
+    return 1;
 }
 
 void arp_learn(struct arp_eth_header *arp_req, uint64_t sw_dpid, uint32_t port)
@@ -73,30 +80,39 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
     struct mul_act_mdata      mdata;
     arp_hash_table_t * s = NULL;
     uint8_t src_addr[OFP_ETH_ALEN] = {0x02, 0x42, 0xf7, 0x6d, 0x93, 0x67};
+    uint8_t dst_addr[OFP_ETH_ALEN] = {0x03, 0x42, 0xf7, 0x6d, 0x93, 0x67};
     tp_sw * sw_tmp1, * sw_tmp2;
+    uint32_t pc_sw_port;
 
     eth = (struct eth_header*)raw;
     arp = (void *)(raw + sizeof(struct eth_header)  +
                    (fl->dl_vlan ? VLAN_HEADER_LEN : 0));
 
-    //c_log_info("my_controller app - ARP SRC IP KEY %d!", arp->ar_tpa);
-    s = arp_find_key(arp->ar_spa);
-    if(s)
+    // c_log_info("my_controller app - ARP SRC IP KEY %d!", arp->ar_spa);
+    // 源学习之前需要判断源MAC是否有效
+    if(src_mac_is_valid(arp->ar_sha))
     {
-        arp_delete_key(arp->ar_spa);
+        s = arp_find_key(arp->ar_spa);
+        if(s)
+        {
+            arp_delete_key(arp->ar_spa);
+        }
+        arp_learn(arp, sw->dpid, inport);
     }
-    arp_learn(arp, sw->dpid, inport);
 
     memset(&parms, 0, sizeof(parms));
     mul_app_act_alloc(&mdata);
     mdata.only_acts = true;
     if(htons(arp->ar_op) == 1){
-        //arp request
-        s = arp_find_key(arp->ar_tpa);
-        if(s)
+        // arp request
+        // s = arp_find_key(arp->ar_tpa);
+        // 收到arp request查询数据库有注册信息，则回复固定的目标MAC，否则洪泛arp request
+        pc_sw_port = Get_Pc_Sw_Port(arp->ar_tpa);
+        // if(s)
+        if(pc_sw_port != -1)
         {
-            //arp cache reply
-            // c_slog_info("ARP Cache reply!");
+            // arp cache reply
+            c_log_debug("\n\n\nARP Cache reply!\n\n\n");
             mul_app_act_set_ctors(&mdata, sw->dpid);
             mul_app_action_output(&mdata, inport);
             parms.buffer_id = buffer_id;
@@ -104,13 +120,15 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
             parms.action_list = mdata.act_base;
             parms.action_len = mul_app_act_len(&mdata);
             parms.data_len = sizeof(struct eth_header) + sizeof(struct arp_eth_header);
-            parms.data = get_proxy_arp_reply(arp, s->dl_hw_addr);
+            // reply fixed mac(false)
+            // parms.data = get_proxy_arp_reply(arp, s->dl_hw_addr);
+            parms.data = get_proxy_arp_reply(arp, dst_addr);
             mul_app_send_pkt_out(NULL, sw->dpid, &parms);
             mul_app_act_free(&mdata);
         }else
         {
-            //STP flood c2s
-            // c_log_info("ARP Flood!");
+            // STP flood c2s
+            c_log_debug("\n\n\nARP Flood!\n\n\n");
             mul_app_act_set_ctors(&mdata, sw->dpid);
             mul_app_action_output(&mdata, OF_ALL_PORTS); 
             parms.buffer_id = buffer_id;
@@ -133,22 +151,24 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
         }
     }else
     {
-        //arp reply route trans
-        // c_log_info("ARP host Reply!");
-        s = arp_find_key(arp->ar_tpa);
-        memcpy(arp->ar_tha, s->dl_hw_addr, OFP_ETH_ALEN);
+        // arp reply route trans
+        // 收到arp reply只进行源学习，不再回复目标MAC
+
+        c_log_debug("\n\n\nARP host Reply!\n\n\n");
+        // s = arp_find_key(arp->ar_tpa);
+        // memcpy(arp->ar_tha, s->dl_hw_addr, OFP_ETH_ALEN);
         // c_log_debug("dst mac %x%x%x%x%x%x", arp->ar_tha[0],arp->ar_tha[1],arp->ar_tha[2],arp->ar_tha[3],arp->ar_tha[4],arp->ar_tha[5]);
-        memcpy(eth->eth_dst, s->dl_hw_addr, OFP_ETH_ALEN);
-        mul_app_act_set_ctors(&mdata, tp_find_sw(s->sw_key)->sw_dpid);
-        mul_app_action_output(&mdata, s->port_no);
-        parms.buffer_id = buffer_id;
-        parms.in_port = OF_NO_PORT;
-        parms.action_list = mdata.act_base;
-        parms.action_len = mul_app_act_len(&mdata);
-        parms.data_len = pkt_len;
-        parms.data = raw;
-        mul_app_send_pkt_out(NULL, tp_find_sw(s->sw_key)->sw_dpid, &parms);
-        mul_app_act_free(&mdata);
+        // memcpy(eth->eth_dst, s->dl_hw_addr, OFP_ETH_ALEN);
+        // mul_app_act_set_ctors(&mdata, tp_find_sw(s->sw_key)->sw_dpid);
+        // mul_app_action_output(&mdata, s->port_no);
+        // parms.buffer_id = buffer_id;
+        // parms.in_port = OF_NO_PORT;
+        // parms.action_list = mdata.act_base;
+        // parms.action_len = mul_app_act_len(&mdata);
+        // parms.data_len = pkt_len;
+        // parms.data = raw;
+        // mul_app_send_pkt_out(NULL, tp_find_sw(s->sw_key)->sw_dpid, &parms);
+        // mul_app_act_free(&mdata);
     }
 }
 

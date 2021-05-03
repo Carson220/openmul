@@ -268,6 +268,8 @@ uint32_t Get_Pc_Sw_Port(uint32_t ip)
 
     //输出查询结果
     printf("pc sw_port:%s\n", reply->str);
+    if(reply->str == NULL)
+        return ret;
     ret = atoi(reply->str);
     freeReplyObject(reply);
     redisFree(context);

@@ -115,7 +115,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
         }
         break;
     case USER_TLV_DATA_TYPE_STOS:
-        c_log_debug("lldp_stos_pkt between s%x and s%x", sw1->key, sw2->key);
+        c_log_debug("lldp_stos_pkt between s%x and s%x", sw1->key, sw2_key);
         if(sw2)
         {//in the same area
             //add edge between the sw_node.
@@ -149,8 +149,6 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
         else//LLDP from other area
         {
             //add edge between the sw_node.
-            tp_add_link(sw1->key, inport, sw2->key, ntohs(lldp->port_tlv_id));
-
             if(!__tp_get_link_in_head(sw1->list_link, sw2_key))
             {
                 link_n1 = malloc(sizeof(tp_link));
@@ -166,14 +164,14 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             if(link_n1->delay_measure_times < DELAY_MEASURE_TIMES)lldp_flood(sw1);
 
             delay_tmp = now_timeval-ntohll(lldp->user_tlv_data_timeval);
-            cid = (uint16_t)((sw2->key & 0xffff0000) >> 16);
-            sid = (uint8_t)((sw2->key & 0x0000ff00) >> 8);
+            cid = (uint16_t)((sw2_key & 0xffff0000) >> 16);
+            sid = (uint8_t)((sw2_key & 0x0000ff00) >> 8);
             sw2_delay = Get_Sw_Delay(cid, sid);
             c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
-                link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2->key, sw2_delay);
+                link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2_key, sw2_delay);
             delay_tmp -= (sw1->delay + sw2_delay);
             c_log_debug("%dth sw%x <-> sw%x link delay: %lu us", \
-                link_n1->delay_measure_times, sw1->key, sw2->key, delay_tmp);
+                link_n1->delay_measure_times, sw1->key, sw2_key, delay_tmp);
             // c_log_debug("get last time link delay: %llu us", link_n1->delay);
             if(link_n1->delay)delay = (link_n1->delay + delay_tmp)/2;
             else delay = delay_tmp;
@@ -196,15 +194,12 @@ void lldp_send_packet(uint64_t sw_dpid, lldp_pkt_t *buffer, uint32_t inport, uin
 {
     struct of_pkt_out_params  parms;
     struct mul_act_mdata      mdata;
-    int ret = -1;
 
     memset(&parms, 0, sizeof(parms));
     mul_app_act_alloc(&mdata);
     mdata.only_acts = true;
     mul_app_act_set_ctors(&mdata, sw_dpid);
-    ret = mul_app_action_output(&mdata, outport);
-    if(ret == 0) c_log_debug("\n\n\nset action output sucess!\n\n\n");
-    else c_log_debug("\n\n\nset action output fail!\n\n\n");
+    mul_app_action_output(&mdata, outport);
     parms.buffer_id = -1;
     parms.in_port = inport;
     parms.action_list = mdata.act_base;
