@@ -133,6 +133,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
                 link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2->key, sw2->delay);
             delay_tmp -= (sw1->delay + sw2->delay);
+            if(delay_tmp < 0) delay_tmp = 0;
             c_log_debug("%dth sw%x <-> sw%x link delay: %lu us", \
                 link_n1->delay_measure_times, sw1->key, sw2->key, delay_tmp);
             // c_log_debug("get last time link delay: %llu us", link_n1->delay);
@@ -170,6 +171,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
                 link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2_key, sw2_delay);
             delay_tmp -= (sw1->delay + sw2_delay);
+            if(delay_tmp < 0) delay_tmp = 0;
             c_log_debug("%dth sw%x <-> sw%x link delay: %lu us", \
                 link_n1->delay_measure_times, sw1->key, sw2_key, delay_tmp);
             // c_log_debug("get last time link delay: %llu us", link_n1->delay);
