@@ -330,6 +330,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
         for(; tmp != NULL; tmp = tmp->next)//从起点开始 
         {
             find_node(tmp->node_id)->value->dist = tmp->delay;
+            find_node(tmp->node_id)->value->rt_pre = sw_start; // update pre_node
         }
         find_node(sw_start)->value->dist = 0;
         find_node(sw_start)->value->flag = 1;
@@ -345,21 +346,24 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
                 {
                     min_dst = s->value->dist;
                     min_node = s->node_id;
-                    s->value->rt_pre = sw_start; // update pre_node
+                    c_log_debug("update min_node %x, min_dst %lu us", find_node(min_node)->value->node_id, find_node(min_node)->value->dist);
                 }
             }
 
-            if(min_node == 0) break;// 找不到最短路径 
+            if(min_node == 0) break; // 找不到最短路径 
             find_node(min_node)->value->flag = 1; // 改为固定标号
-            if(min_node == sw_end) break;// 找到最短路径
+            c_log_debug("min_node %x", find_node(min_node)->value->node_id);
+            if(min_node == sw_end) break; // 找到最短路径
 
             tmp = find_node(min_node)->value->next;
-            for(; tmp != NULL; tmp = tmp->next)// 更新相邻节点标号值 
+            for(; tmp != NULL; tmp = tmp->next) // 更新相邻节点标号值 
             {
                 if(!find_node(tmp->node_id)->value->flag && min_dst + tmp->delay < find_node(tmp->node_id)->value->dist)
                 {
                     find_node(tmp->node_id)->value->dist = min_dst + tmp->delay;
                     find_node(tmp->node_id)->value->rt_pre = min_node;
+                    c_log_debug("sw %x update pre_node %x, dst %lu us", tmp->node_id, \
+                        find_node(tmp->node_id)->value->rt_pre, find_node(tmp->node_id)->value->dist);
                 }
             }
 
@@ -416,7 +420,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 
         if(find_node(outsw)->value->rt_pre != 0)
         {
-            c_log_debug("sw %x pre_node: %x", outsw, find_node(outsw)->value->rt_pre);
+            c_log_debug("sw %x pre_node: %x", find_node(outsw)->value->node_id, find_node(outsw)->value->rt_pre);
             tmp = find_node(outsw)->value->next;
             for(; tmp != NULL; )
             {
