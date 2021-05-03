@@ -323,53 +323,58 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     // c_log_debug("finish to create topo");
 
     // calculate route sw-sw
-    tmp = find_node(sw_start)->value->next;
-    for(; tmp != NULL; tmp = tmp->next)//从起点开始 
-	{
-        find_node(tmp->node_id)->value->dist = tmp->delay;
-	}
     find_node(sw_start)->value->dist = 0;
-    find_node(sw_start)->value->flag = 1;
-
-    for(i = 0;i < node_sw_num;i ++)// 循环N次
+    if(sw_start != sw_end)
     {
-        min_node = 0;
-        min_dst = INF;
-
-        for (s = hash_map; s != NULL; s = s->hh.next) //寻找下一个固定标号
+        tmp = find_node(sw_start)->value->next;
+        for(; tmp != NULL; tmp = tmp->next)//从起点开始 
         {
-            if(!s->value->flag && s->value->dist < min_dst)
-            {
-                min_dst = s->value->dist;
-                min_node = s->node_id;
-                s->value->rt_pre = sw_start; // update pre_node
-            }
+            find_node(tmp->node_id)->value->dist = tmp->delay;
         }
-
-        if(min_node == 0) break;// 找不到最短路径 
-        find_node(min_node)->value->flag = 1; // 改为固定标号
-        if(min_node == sw_end) break;// 找到最短路径
-
-        tmp = find_node(min_node)->value->next;
-        for(; tmp != NULL; tmp = tmp->next)// 更新相邻节点标号值 
+        find_node(sw_start)->value->dist = 0;
+        find_node(sw_start)->value->flag = 1;
+        
+        for(i = 0;i < node_sw_num;i ++)// 循环N次
         {
-            if(!find_node(tmp->node_id)->value->flag && min_dst + tmp->delay < find_node(tmp->node_id)->value->dist)
-            {
-                find_node(tmp->node_id)->value->dist = min_dst + tmp->delay;
-                find_node(tmp->node_id)->value->rt_pre = min_node;
-            }
-        }
+            min_node = 0;
+            min_dst = INF;
 
+            for (s = hash_map; s != NULL; s = s->hh.next) //寻找下一个固定标号
+            {
+                if(!s->value->flag && s->value->dist < min_dst)
+                {
+                    min_dst = s->value->dist;
+                    min_node = s->node_id;
+                    s->value->rt_pre = sw_start; // update pre_node
+                }
+            }
+
+            if(min_node == 0) break;// 找不到最短路径 
+            find_node(min_node)->value->flag = 1; // 改为固定标号
+            if(min_node == sw_end) break;// 找到最短路径
+
+            tmp = find_node(min_node)->value->next;
+            for(; tmp != NULL; tmp = tmp->next)// 更新相邻节点标号值 
+            {
+                if(!find_node(tmp->node_id)->value->flag && min_dst + tmp->delay < find_node(tmp->node_id)->value->dist)
+                {
+                    find_node(tmp->node_id)->value->dist = min_dst + tmp->delay;
+                    find_node(tmp->node_id)->value->rt_pre = min_node;
+                }
+            }
+
+        }
+        c_log_debug("finish to calculate route");
+        if(min_node == 0)
+        {
+            printf("no path\n");
+            return 0;
+        }
+        else 
+            printf("ip route delay: %lu us\n",find_node(sw_end)->value->dist);
     }
-    c_log_debug("finish to calculate route");
-	if(min_node == 0)
-    {
-        printf("no path\n");
-        return 0;
-    }
-	else 
+    else
         printf("ip route delay: %lu us\n",find_node(sw_end)->value->dist);
-
 
     // set flow-table
     Clr_Route(ip_src, ip_dst);
