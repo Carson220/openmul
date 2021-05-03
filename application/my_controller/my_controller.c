@@ -47,7 +47,7 @@ my_controller_install_dfl_flows(uint64_t dpid)
     struct flow fl;
     struct flow mask;
     //controller mac(used to arp proxy)
-    uint8_t src_addr[OFP_ETH_ALEN] = {0x02, 0x42, 0xf7, 0x6d, 0x93, 0x67};
+    uint8_t src_addr[OFP_ETH_ALEN] = CTRL_MAC;
     //struct mul_act_mdata mdata; 
     //mul_act_mdata_t mdata;
 

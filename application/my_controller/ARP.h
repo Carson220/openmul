@@ -5,6 +5,9 @@
 #include <stdlib.h>  /* malloc */
 #include "mul_common.h"
 
+#define CTRL_MAC {0x02, 0x42, 0xf7, 0x6d, 0x93, 0x67} // ctrl_mac可能会有多个，都需要在arp源学习之前进行比较判断
+#define DST_MAC {0x03, 0x42, 0xf7, 0x6d, 0x93, 0x67} // arp dst_ip mac addr
+
 //structure of arp store table
 typedef struct arp_hash_table_
 {
