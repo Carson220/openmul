@@ -48,8 +48,11 @@ void arp_distory(void)
 
 int src_mac_is_valid(uint8_t src_mac[ETH_ADDR_LEN])
 {
-    uint8_t ctrl_mac[OFP_ETH_ALEN] = CTRL_MAC;
-    if(memcmp(src_mac, ctrl_mac, OFP_ETH_ALEN) == 0)// same -> invalid
+    uint8_t ctrl_mac_1[OFP_ETH_ALEN] = CTRL_MAC_1;
+    uint8_t ctrl_mac_2[OFP_ETH_ALEN] = CTRL_MAC_2;
+    if(memcmp(src_mac, ctrl_mac_1, OFP_ETH_ALEN) == 0)// same -> invalid
+        return 0;
+    if(memcmp(src_mac, ctrl_mac_2, OFP_ETH_ALEN) == 0)// same -> invalid
         return 0;
     return 1;
 }
@@ -79,7 +82,7 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
     struct of_pkt_out_params  parms;
     struct mul_act_mdata      mdata;
     arp_hash_table_t * s = NULL;
-    uint8_t src_addr[OFP_ETH_ALEN] = CTRL_MAC;
+    uint8_t src_addr[OFP_ETH_ALEN] = CTRL_MAC_1;
     uint8_t dst_addr[OFP_ETH_ALEN] = DST_MAC;
     tp_sw * sw_tmp1, * sw_tmp2;
     uint32_t pc_sw_port;
