@@ -383,7 +383,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     else
         printf("ip route delay: %lu us\n",find_node(sw_end)->value->dist);
 
-    // clear flow-table
+    // clear route and set flow-table
     Clr_Route(ip_src, ip_dst);
     outsw = sw_end;
     dst_node = tp_find_sw(outsw);
