@@ -118,7 +118,7 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
         if(pc_sw_port != -1)
         {
             // arp cache reply
-            c_log_debug("\n\n\nARP Cache reply!\n\n\n");
+            c_log_debug("ARP Cache reply!");
             mul_app_act_set_ctors(&mdata, sw->dpid);
             mul_app_action_output(&mdata, inport);
             parms.buffer_id = buffer_id;
@@ -134,7 +134,7 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
         }else
         {
             // STP flood c2s
-            c_log_debug("\n\n\nARP Flood!\n\n\n");
+            c_log_debug("ARP Flood!");
             mul_app_act_set_ctors(&mdata, sw->dpid);
             mul_app_action_output(&mdata, OF_ALL_PORTS); 
             parms.buffer_id = buffer_id;
@@ -160,7 +160,7 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
         // arp reply route trans
         // 收到arp reply只进行源学习，不再回复目标MAC
 
-        c_log_debug("\n\n\nARP host Reply!\n\n\n");
+        c_log_debug("ARP host Reply!");
         // s = arp_find_key(arp->ar_tpa);
         // memcpy(arp->ar_tha, s->dl_hw_addr, OFP_ETH_ALEN);
         // c_log_debug("dst mac %x%x%x%x%x%x", arp->ar_tha[0],arp->ar_tha[1],arp->ar_tha[2],arp->ar_tha[3],arp->ar_tha[4],arp->ar_tha[5]);
