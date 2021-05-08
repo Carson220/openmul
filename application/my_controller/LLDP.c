@@ -164,7 +164,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
 
             link_n1 = __tp_get_link_in_head(sw1->list_link, sw2_key);
             link_n1->delay_measure_times += 1;
-            if(link_n1->delay_measure_times < DELAY_MEASURE_TIMES)lldp_flood(sw1);
+            // if(link_n1->delay_measure_times < DELAY_MEASURE_TIMES)lldp_flood(sw1);
 
             delay_tmp = now_timeval-ntohll(lldp->user_tlv_data_timeval);
             cid = (uint16_t)((sw2_key & 0xffff0000) >> 16);
@@ -177,8 +177,9 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             c_log_debug("%dth sw%x <-> sw%x link delay: %lu us", \
                 link_n1->delay_measure_times, sw1->key, sw2_key, delay_tmp);
             // c_log_debug("get last time link delay: %llu us", link_n1->delay);
-            if(link_n1->delay)delay = (link_n1->delay + delay_tmp)/2;
-            else delay = delay_tmp;
+            // if(link_n1->delay)delay = (link_n1->delay + delay_tmp)/2;
+            // else delay = delay_tmp;
+            delay = delay_tmp;
             c_log_debug("average link delay: %lu us", delay);
             link_n1->delay = delay;
 
