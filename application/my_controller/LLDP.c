@@ -94,9 +94,11 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
     switch (lldp->user_tlv_data_type)
     {
     case USER_TLV_DATA_TYPE_CTOS:
-        sw1->delay += (now_timeval-ntohll(lldp->user_tlv_data_timeval))/2;
-        if(sw1->delay_measure_times != 0)
-            sw1->delay /= 2;
+        // sw1->delay += (now_timeval-ntohll(lldp->user_tlv_data_timeval))/2;
+        // if(sw1->delay_measure_times != 0)
+        //     sw1->delay /= 2;
+        // sw1->delay_measure_times += 1;
+        sw1->delay = (now_timeval-ntohll(lldp->user_tlv_data_timeval))/2;
         sw1->delay_measure_times += 1;
         c_log_debug("lldp_ctos_pkt from s%x and %dth average delay: %lu us", \
             sw1->key, sw1->delay_measure_times, sw1->delay);
@@ -105,14 +107,15 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
         sid = (uint8_t)((sw1->key & 0xffffff00) >> 8);
         Set_Sw_Delay(cid, sid, sw1->delay); 
 
-        //flood lldp and measure the delay five times
-        if(sw1->delay_measure_times == DELAY_MEASURE_TIMES)
-        {
-            lldp_flood(sw1);
-        }else
-        {
-            lldp_measure_delay_ctos(sw1->sw_dpid);
-        }
+        //flood lldp and measure the delay 
+        // if(sw1->delay_measure_times == DELAY_MEASURE_TIMES)
+        // {
+        //     lldp_flood(sw1);
+        // }else
+        // {
+        //     lldp_measure_delay_ctos(sw1->sw_dpid);
+        // }
+        lldp_flood(sw1);
         break;
     case USER_TLV_DATA_TYPE_STOS:
         c_log_debug("lldp_stos_pkt between s%x and s%x", sw1->key, sw2_key);
@@ -125,9 +128,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             link_n1->delay_measure_times += 1;
             link_n2->delay_measure_times += 1;
             
-            // if(link_n1->delay_measure_times == 1)break;
-            // else if(link_n1->delay_measure_times <= DELAY_MEASURE_TIMES)lldp_flood(sw1);
-            if(link_n1->delay_measure_times < DELAY_MEASURE_TIMES)lldp_flood(sw1);
+            // if(link_n1->delay_measure_times < DELAY_MEASURE_TIMES)lldp_flood(sw1);
 
             delay_tmp = now_timeval-ntohll(lldp->user_tlv_data_timeval);
             c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
@@ -137,8 +138,9 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             c_log_debug("%dth sw%x <-> sw%x link delay: %lu us", \
                 link_n1->delay_measure_times, sw1->key, sw2->key, delay_tmp);
             // c_log_debug("get last time link delay: %llu us", link_n1->delay);
-            if(link_n1->delay)delay = (link_n1->delay + delay_tmp)/2;
-            else delay = delay_tmp;
+            // if(link_n1->delay)delay = (link_n1->delay + delay_tmp)/2;
+            // else delay = delay_tmp;
+            delay = delay_tmp;
             c_log_debug("average link delay: %lu us", delay);
             link_n1->delay = delay;
             link_n2->delay = delay;
