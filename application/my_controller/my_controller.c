@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include <pthread.h>
 #include "config.h"
 #include "mul_common.h"
 #include "mul_vty.h"
@@ -92,6 +93,19 @@ my_controller_install_dfl_flows(uint64_t dpid)
                           C_FL_PRIO_LDFL, C_FL_ENT_LOCAL);
 }
 
+void * lldp_circulate(void* dpid)
+{
+    int counter = 0;
+    while(counter < 10)
+    {
+        printf("start\n");
+        lldp_measure_delay_ctos(*(int64_t*)dpid);
+        printf("end: %d\n", counter);
+        sleep(40);
+        counter ++;
+    }
+    return NULL;
+}
 
 /**
  * my_controller_sw_add -
@@ -124,7 +138,26 @@ my_controller_sw_add(mul_switch_t *sw)
 
     //measure the delay between controller and switch
     c_log_debug("start measure the delay between sw%x and c%x", sw_glabol_key, controller_area);
-    lldp_measure_delay_ctos(sw->dpid);
+
+    // create a new thread
+    pthread_t t;
+    pthread_attr_t attr;//申明一个attr的结构体
+    pthread_attr_init(&attr);//初始化结构体
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);//设置线程为分离线程
+    int err = pthread_create(&t,&attr,lldp_circulate,(void*)&(sw->dpid));
+
+    if(err!=0)
+    {
+        printf("thread_create Failed:%s\n",strerror(errno));
+
+    }else{
+        printf("thread_create success\n");
+    }
+    pthread_attr_destroy(&attr);
+
+    pthread_join(t,NULL);
+    printf("主线程退出\n");
+    // lldp_measure_delay_ctos(sw->dpid);
     // c_log_debug("measure controller to sw %x delay", sw_glabol_key);
 }
 
