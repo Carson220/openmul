@@ -307,17 +307,20 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     mul_act_mdata_t mdata;
     
     // get start and end info
-    uint32_t port_end;
+    uint32_t port_start, port_end;
     uint32_t sw_start, sw_end;
+    port_start = Get_Pc_Sw_Port(ip_src);
     port_end = Get_Pc_Sw_Port(ip_dst);
-    sw_start = sw_src;
+    sw_start = (port_start & 0xffffff00);
     sw_end = (port_end & 0xffffff00);
 
-    // lookup route from redis and set flow_table
-    if(route_lookup(sw_src, ip_src, ip_dst))
-        return 1;
-
-
+    if(sw_start != sw_src)
+    {
+        // lookup route from redis and set flow_table
+        if(route_lookup(sw_src, ip_src, ip_dst))
+            return 1;
+    }
+    
     // create topo by redis
     tp_create();
     // c_log_debug("finish to create topo");
@@ -380,7 +383,7 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     else
         printf("ip route delay: %lu us\n",find_node(sw_end)->value->dist);
 
-    // set flow-table
+    // clear route and set flow-table
     Clr_Route(ip_src, ip_dst);
     outsw = sw_end;
     dst_node = tp_find_sw(outsw);
