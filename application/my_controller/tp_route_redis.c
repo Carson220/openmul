@@ -247,7 +247,7 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     if(reply->elements == 0) return 0;
     for(i=0;i < reply->elements;i++)
     {
-        printf("out_sw_port: %s",reply->element[i]->str);
+        printf("out_sw_port: %s\n",reply->element[i]->str);
         out_sw_port = atoi(reply->element[i]->str);
         outsw = (out_sw_port & 0xffffff00);
         if(outsw == sw_src) route_is_exist = 1;
