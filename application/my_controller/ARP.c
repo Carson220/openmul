@@ -112,24 +112,28 @@ void arp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buffe
     if(htons(arp->ar_op) == 1){
         // arp request
         // s = arp_find_key(arp->ar_tpa);
-        // 收到arp request查询数据库有注册信息，则回复固定的目标MAC，否则洪泛arp request
+        // 收到arp request查询数据库有注册信息，则判断源MAC是否有效，有效则回复回复固定的目标MAC
+        //                       若目的IP未注册，则洪泛arp request
         pc_sw_port = Get_Pc_Sw_Port(arp->ar_tpa);
         // if(s)
         if(pc_sw_port != -1)
         {
-            // arp cache reply
-            c_log_debug("ARP Cache reply!");
-            mul_app_act_set_ctors(&mdata, sw->dpid);
-            mul_app_action_output(&mdata, inport);
-            parms.buffer_id = buffer_id;
-            parms.in_port = OF_NO_PORT;
-            parms.action_list = mdata.act_base;
-            parms.action_len = mul_app_act_len(&mdata);
-            parms.data_len = sizeof(struct eth_header) + sizeof(struct arp_eth_header);
-            // reply fixed mac(false)
-            // parms.data = get_proxy_arp_reply(arp, s->dl_hw_addr);
-            parms.data = get_proxy_arp_reply(arp, dst_addr);
-            mul_app_send_pkt_out(NULL, sw->dpid, &parms);
+            // if src_mac is valid, arp cache reply
+            if(src_mac_is_valid(arp->ar_sha))
+            {
+                c_log_debug("ARP Cache reply!");
+                mul_app_act_set_ctors(&mdata, sw->dpid);
+                mul_app_action_output(&mdata, inport);
+                parms.buffer_id = buffer_id;
+                parms.in_port = OF_NO_PORT;
+                parms.action_list = mdata.act_base;
+                parms.action_len = mul_app_act_len(&mdata);
+                parms.data_len = sizeof(struct eth_header) + sizeof(struct arp_eth_header);
+                // reply fixed mac(false)
+                // parms.data = get_proxy_arp_reply(arp, s->dl_hw_addr);
+                parms.data = get_proxy_arp_reply(arp, dst_addr);
+                mul_app_send_pkt_out(NULL, sw->dpid, &parms);
+            }
             mul_app_act_free(&mdata);
         }else
         {
