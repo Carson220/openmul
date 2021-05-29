@@ -172,12 +172,17 @@ my_controller_sw_add(mul_switch_t *sw)
 static void
 my_controller_sw_del(mul_switch_t *sw)
 {
+    // 从数据库中删除
+    uint32_t sw_key = tp_get_sw_glabol_id(sw->dpid);
+    uint16_t cid = (uint16_t)((sw1_key & 0xffff0000) >> 16);
+    uint8_t sid = (uint8_t)((sw1_key & 0xffffff00) >> 8);
+    Clr_Sw_Delay(cid, sid);
+    c_log_info("del sw %x info from redis", sw_key);
+
     c_log_debug("sw %x deleted", tp_get_sw_glabol_id(sw->dpid));
     tp_delete_sw(tp_get_sw_glabol_id(sw->dpid));
     tp_del_sw_glabol_id(sw->dpid);
     // c_log_debug("switch %lx left network", (uint64_t)(sw->dpid));
-    // 从数据库中删除
-
 }
 
 /**
@@ -324,6 +329,7 @@ lldp_port_del_cb(mul_switch_t *sw,  mul_port_t *port)
             Clr_Link_Delay(port2, port1);
             link_list = link_list->next;
             tp_delete_link(sw1_key, sw2_key);
+            c_log_info("del link between sw %x and sw %x from redis", sw1_key, sw2_key);
         }
         else
             link_list = link_list->next;
@@ -338,7 +344,7 @@ lldp_port_del_cb(mul_switch_t *sw,  mul_port_t *port)
 struct mul_app_client_cb my_controller_app_cbs = {
     .switch_priv_alloc = NULL,
     .switch_priv_free = NULL,
-    .switch_add_cb =  my_controller_sw_add,         /* Switch add notifier */
+    .switch_add_cb = my_controller_sw_add,          /* Switch add notifier */
     .switch_del_cb = my_controller_sw_del,          /* Switch delete notifier */
     .switch_priv_port_alloc = NULL,
     .switch_priv_port_free = NULL,

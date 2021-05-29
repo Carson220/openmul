@@ -134,24 +134,25 @@ DB_RESULT Set_Sw_Delay(uint16_t cid, uint8_t sid, uint64_t delay)
     return SUCCESS;
 }
 
-DB_RESULT Clr_Route(uint32_t ip_src, uint32_t ip_dst)
+DB_RESULT Clr_Sw_Delay(uint16_t cid, uint8_t sid)
 {
     char cmd[CMD_MAX_LENGHT] = {0};
-    uint64_t ip = (((uint64_t)ip_src) << 32) + ip_dst;
+    uint32_t id = (((uint32_t)cid) << 16) + (((uint16_t)sid) << 8);
+
     /*组装redis命令*/
-    snprintf(cmd, CMD_MAX_LENGHT, "ltrim %lu 1 0",
-             ip);
+    snprintf(cmd, CMD_MAX_LENGHT, "hdel sw %u",
+             id);
     // for(int i=0;cmd[i]!='\0';i++)
-    // 	printf("%c",cmd[i]);
+    //  printf("%c",cmd[i]);
     // printf("\n");
 
     /*执行redis命令*/
     if (FAILURE == exeRedisIntCmd(cmd))
     {
-        printf("clear route ip_src:%x, ip_dst:%x failure\n", ip_src, ip_dst);
+        printf("clear sw:%x delay failure\n", id);
         return FAILURE;
     }
-    printf("clear route ip_src:%x, ip_dst:%x success\n", ip_src, ip_dst);
+    printf("clear sw:%x delay success\n", id);
     return SUCCESS;
 }
 
@@ -173,6 +174,27 @@ DB_RESULT Set_Route(uint32_t ip_src, uint32_t ip_dst, uint32_t out_sw_port)
         return FAILURE;
     }
     printf("set route ip_src:%x, ip_dst:%x, out_sw_port:%x success\n", ip_src, ip_dst, out_sw_port);
+    return SUCCESS;
+}
+
+DB_RESULT Clr_Route(uint32_t ip_src, uint32_t ip_dst)
+{
+    char cmd[CMD_MAX_LENGHT] = {0};
+    uint64_t ip = (((uint64_t)ip_src) << 32) + ip_dst;
+    /*组装redis命令*/
+    snprintf(cmd, CMD_MAX_LENGHT, "ltrim %lu 1 0",
+             ip);
+    // for(int i=0;cmd[i]!='\0';i++)
+    // 	printf("%c",cmd[i]);
+    // printf("\n");
+
+    /*执行redis命令*/
+    if (FAILURE == exeRedisIntCmd(cmd))
+    {
+        printf("clear route ip_src:%x, ip_dst:%x failure\n", ip_src, ip_dst);
+        return FAILURE;
+    }
+    printf("clear route ip_src:%x, ip_dst:%x success\n", ip_src, ip_dst);
     return SUCCESS;
 }
 
