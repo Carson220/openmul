@@ -173,7 +173,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             // read delay from redis
             sw2_delay = Get_Sw_Delay(cid, sid);
             // If there is no synchronization, perfrom error handling.
-            if(sw2_delay == -1) sw_delay = 0;
+            if(sw2_delay == -1) sw2_delay = 0;
             c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
                 link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2_key, sw2_delay);
             delay_tmp -= (sw1->delay + sw2_delay);
