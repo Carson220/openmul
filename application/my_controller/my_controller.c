@@ -174,8 +174,8 @@ my_controller_sw_del(mul_switch_t *sw)
 {
     // 从数据库中删除
     uint32_t sw_key = tp_get_sw_glabol_id(sw->dpid);
-    uint16_t cid = (uint16_t)((sw1_key & 0xffff0000) >> 16);
-    uint8_t sid = (uint8_t)((sw1_key & 0xffffff00) >> 8);
+    uint16_t cid = (uint16_t)((sw_key & 0xffff0000) >> 16);
+    uint8_t sid = (uint8_t)((sw_key & 0xffffff00) >> 8);
     Clr_Sw_Delay(cid, sid);
     c_log_info("del sw %x info from redis", sw_key);
 
