@@ -20,7 +20,7 @@
 #endif
 
 #ifndef DELAY_MEASURE_TIMES
-#define DELAY_MEASURE_TIMES 5
+#define DELAY_MEASURE_TIMES 1
 #endif
 
 //the link node

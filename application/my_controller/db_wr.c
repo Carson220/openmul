@@ -71,6 +71,27 @@ DB_RESULT Set_Link_Delay(uint32_t port1, uint32_t port2, uint64_t delay)
     return SUCCESS;
 }
 
+DB_RESULT Clr_Link_Delay(uint32_t port1, uint32_t port2)
+{
+    char cmd[CMD_MAX_LENGHT] = {0};
+    uint64_t port = (((uint64_t)port1) << 32) + port2;
+    /*组装redis命令*/
+    snprintf(cmd, CMD_MAX_LENGHT, "del link_delay %lu",
+             port);
+    // for(int i=0;cmd[i]!='\0';i++)
+    //  printf("%c",cmd[i]);
+    // printf("\n");
+
+    /*执行redis命令*/
+    if (FAILURE == exeRedisIntCmd(cmd))
+    {
+        printf("clear link:%lx failure\n", port);
+        return FAILURE;
+    }
+    printf("clear link:%lx success\n", port);
+    return SUCCESS;
+}
+
 DB_RESULT Set_Pc_Sw_Port(uint32_t ip, uint32_t port)
 {
     char cmd[CMD_MAX_LENGHT] = {0};

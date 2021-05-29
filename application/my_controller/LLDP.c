@@ -120,7 +120,7 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
     case USER_TLV_DATA_TYPE_STOS:
         c_log_debug("lldp_stos_pkt between s%x and s%x", sw1->key, sw2_key);
         if(sw2)
-        {//in the same area
+        {//in the same area 
             //add edge between the sw_node.
             tp_add_link(sw1->key, inport, sw2->key, ntohs(lldp->port_tlv_id));
             link_n1 = __tp_get_link_in_head(sw1->list_link, sw2_key);
@@ -169,6 +169,8 @@ void lldp_proc(mul_switch_t *sw, struct flow *fl, uint32_t inport, uint32_t buff
             delay_tmp = now_timeval-ntohll(lldp->user_tlv_data_timeval);
             cid = (uint16_t)((sw2_key & 0xffff0000) >> 16);
             sid = (uint8_t)((sw2_key & 0x0000ff00) >> 8);
+
+            // read delay from redis
             sw2_delay = Get_Sw_Delay(cid, sid);
             c_log_debug("%dth all delay: %lu us, sw%x_delay:%lu us, sw%x_delay:%lu us", \
                 link_n1->delay_measure_times, delay_tmp, sw1->key, sw1->delay, sw2_key, sw2_delay);

@@ -93,6 +93,7 @@ my_controller_install_dfl_flows(uint64_t dpid)
                           C_FL_PRIO_LDFL, C_FL_ENT_LOCAL);
 }
 
+// lldp subthread
 void * lldp_circulate(void* dpid)
 {
     int counter = 0;
@@ -306,8 +307,30 @@ lldp_port_add_cb(mul_switch_t *sw,  mul_port_t *port)
 static void
 lldp_port_del_cb(mul_switch_t *sw,  mul_port_t *port)
 {
+    // del link
+    uint32_t sw1_key = tp_get_sw_glabol_id(sw->dpid);
+    uint32_t sw2_key;
+    tp_sw * sw1 = tp_find_sw(sw1_key);
+    tp_link * link_list = sw1->list_link;
+    uint32_t port1 = sw1_key + port->port_no;
+    uint32_t port2;
+    while(link_list)
+    {
+        if(link_list->port_h == port->port_no)
+        {
+            sw2_key = link_list->key;
+            port2 = sw2_key + link_list->port_n;
+            Clr_Link_Delay(port1, port2);
+            Clr_Link_Delay(port2, port1);
+            link_list = link_list->next;
+            tp_delete_link(sw1_key, sw2_key);
+        }
+        else
+            link_list = link_list->next;
+    }   
+
     // c_log_debug("sw start %x del a port %x", sw->dpid, port->port_no);
-    __tp_sw_del_port(tp_find_sw(tp_get_sw_glabol_id(sw->dpid)), port->port_no);
+    __tp_sw_del_port(sw1, port->port_no);
     // c_log_debug("sw end %x del a port %x", sw->dpid, port->port_no);
 }
 

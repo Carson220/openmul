@@ -8,7 +8,7 @@
 /*宏定义*/
 #define CMD_MAX_LENGHT 256
 #define REDIS_SERVER_IP "192.168.10.215"
-#define REDIS_SERVER_PORT 6379
+#define REDIS_SERVER_PORT 8102
 
 typedef enum DB_RESULT
 {
@@ -46,6 +46,7 @@ typedef enum DB_RESULT
 /*写函数*/
 // DB_RESULT Set_Ctrl_Id(uint32_t ip, uint16_t id);                         /*设置控制器信息 IP->ID*/
 DB_RESULT Set_Link_Delay(uint32_t port1, uint32_t port2, uint64_t delay);   /*设置链路信息 (node1,node2)->时延*/
+DB_RESULT Clr_Link_Delay(uint32_t port1, uint32_t port2);                   /*清除链路信息*/
 DB_RESULT Set_Pc_Sw_Port(uint32_t ip, uint32_t port);                       /*设置PC信息 IP->连接的交换机端口*/
 DB_RESULT Set_Sw_Delay(uint16_t cid, uint8_t sid, uint64_t delay);          /*设置交换机信息 (CID,SID)->到控制器的时延*/
 DB_RESULT Clr_Route(uint32_t ip_src, uint32_t ip_dst);                      /*清除路由信息*/
