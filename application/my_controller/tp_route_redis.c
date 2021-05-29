@@ -311,6 +311,11 @@ int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     uint32_t sw_start, sw_end;
     port_start = Get_Pc_Sw_Port(ip_src);
     port_end = Get_Pc_Sw_Port(ip_dst);
+    if(port_start == -1 || port_end == -1)
+    {
+        printf("start or end pc is not registered\n");
+        return 0;
+    }
     sw_start = (port_start & 0xffffff00);
     sw_end = (port_end & 0xffffff00);
 

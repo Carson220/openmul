@@ -75,8 +75,9 @@ DB_RESULT Clr_Link_Delay(uint32_t port1, uint32_t port2)
 {
     char cmd[CMD_MAX_LENGHT] = {0};
     uint64_t port = (((uint64_t)port1) << 32) + port2;
+
     /*组装redis命令*/
-    snprintf(cmd, CMD_MAX_LENGHT, "del link_delay %lu",
+    snprintf(cmd, CMD_MAX_LENGHT, "hdel link_delay %lu",
              port);
     // for(int i=0;cmd[i]!='\0';i++)
     //  printf("%c",cmd[i]);
@@ -208,6 +209,11 @@ uint16_t Get_Ctrl_Id(uint32_t ip)
     }
 
     //输出查询结果
+    if(reply->str == NULL)
+    {
+        printf("return NULL\n");
+        return ret;
+    }
     printf("ctrl id:%s\n", reply->str);
     ret = atoi(reply->str);
     freeReplyObject(reply);
@@ -248,6 +254,11 @@ uint64_t Get_Link_Delay(uint32_t port1, uint32_t port2)
     }
 
     //输出查询结果
+    if(reply->str == NULL)
+    {
+        printf("return NULL\n");
+        return ret;
+    }
     printf("link delay:%s us\n", reply->str);
     ret = atol(reply->str);
     freeReplyObject(reply);
@@ -288,9 +299,12 @@ uint32_t Get_Pc_Sw_Port(uint32_t ip)
     }
 
     //输出查询结果
-    printf("pc sw_port:%s\n", reply->str);
     if(reply->str == NULL)
+    {
+        printf("return NULL\n");
         return ret;
+    }
+    printf("pc sw_port:%s\n", reply->str);
     ret = atoi(reply->str);
     freeReplyObject(reply);
     redisFree(context);
@@ -331,6 +345,11 @@ uint64_t Get_Sw_Delay(uint16_t cid, uint8_t sid)
     }
 
     //输出查询结果
+    if(reply->str == NULL)
+    {
+        printf("return NULL\n");
+        return ret;
+    }
     printf("sw delay:%s us\n", reply->str);
     ret = atol(reply->str);
     freeReplyObject(reply);
