@@ -210,14 +210,22 @@ int tp_delete_link(uint32_t key1, uint32_t key2)
     tp_sw *n1 = tp_find_sw(key1);
     tp_sw *n2 = tp_find_sw(key2);
 
-    if(n1 == NULL && n2 == NULL)return 0;
-
-    del_n1 = __tp_get_link_in_head(n1->list_link, key2);
-    del_n2 = __tp_get_link_in_head(n2->list_link, key1);
-
-    if(del_n1 == NULL && del_n2 == NULL)return 0;
-    if(del_n1)__tp_delete_link_in_head(del_n1);
-    if(del_n2)__tp_delete_link_in_head(del_n2);
+    if(n1)
+    {
+        del_n1 = __tp_get_link_in_head(n1->list_link, key2);
+        if(del_n1)
+        {
+            __tp_delete_link_in_head(del_n1);
+        }
+    }
+    if(n2)
+    {
+        del_n2 = __tp_get_link_in_head(n2->list_link, key1);
+        if(del_n2)
+        {
+            __tp_delete_link_in_head(del_n2);
+        }
+    }
 
     return 1;
 }
