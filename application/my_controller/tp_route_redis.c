@@ -205,12 +205,14 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
     char cmd[CMD_MAX_LENGHT] = {0};
     uint64_t ip = (((uint64_t)ip_src) << 32) + ip_dst;
     int route_is_exist = 0;
+    int ret = 0;
     int32_t i;
 
     redisContext *context;
     redisReply *reply;
 
     uint32_t out_sw_port, outsw, outport; // sw_key+port sw_key port
+    uint32_t out_ctrl; // controller area number
     tp_sw * dst_node; // out switch structure
     struct flow fl;
     struct flow mask;
@@ -250,7 +252,14 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
         printf("out_sw_port: %s\n",reply->element[i]->str);
         out_sw_port = atoi(reply->element[i]->str);
         outsw = (out_sw_port & 0xffffff00);
-        if(outsw == sw_src) route_is_exist = 1;
+        if(outsw == sw_src) ret = 1;
+
+        // 判断路由条目是否属于本区域
+        out_ctrl = (out_sw_port & 0xffff0000);
+        if(out_ctrl == (sw_src & 0xffff0000)) 
+            route_is_exist = 1;
+        else 
+            route_is_exist = 0;
         if(route_is_exist)
         {
             // set flow_table
@@ -287,8 +296,7 @@ int route_lookup(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
 
     freeReplyObject(reply);
     redisFree(context);
-    if(route_is_exist) return 1;
-    else return 0;
+    return ret;
 }
 
 int tp_rt_redis_ip(uint32_t sw_src, uint32_t ip_src, uint32_t ip_dst)
